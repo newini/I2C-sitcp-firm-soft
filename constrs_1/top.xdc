@@ -1,0 +1,13 @@
+set_property PACKAGE_PIN AB8 [get_ports led_ctrl]
+set_property PACKAGE_PIN AA8 [get_ports led_busy]
+set_property PACKAGE_PIN AC9 [get_ports led_reset]
+set_property PACKAGE_PIN AA12 [get_ports reset]
+set_property PACKAGE_PIN AD23 [get_ports scl_io]
+set_property PACKAGE_PIN AE24 [get_ports sda_io]
+set_property IOSTANDARD LVCMOS18 [get_ports led_ctrl]
+set_property IOSTANDARD LVCMOS18 [get_ports led_busy]
+set_property IOSTANDARD LVCMOS18 [get_ports led_reset]
+set_property IOSTANDARD LVCMOS18 [get_ports reset]
+set_property IOSTANDARD LVCMOS18 [get_ports scl_io]
+set_property IOSTANDARD LVCMOS18 [get_ports sda_io]
+
