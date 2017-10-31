@@ -45,6 +45,7 @@ module top_TB;
     wire [2:0]    rd_bytes;  
     wire [3:0]    rd_channels;
     wire          scl_drv;
+    reg          scl_i;
     wire          sda_i;
     wire          sda_o;
     reg [31:0]   FIFO_RD_DELAY_CNT;
@@ -79,12 +80,14 @@ module top_TB;
     assign sda = (sda_o == 1'b0) ? 1'b0 : 1'bz;
     assign sda_i = sda;
     assign scl = (scl_drv == 1'b0) ? 1'b0 : 1'bz;
-   
+    //assign scl_i  = scl;
+    
   // I2C master 
     i2c_master_if i2c_master_if(
         .clk        (   CLK_40M),
         .reset      (  reset),
         .scl_o      (  scl_drv),
+        .scl_i      (   scl_i),
         .sda_o      (  sda_o),
         .sda_i      (  sda_i),
         .wr_flg     (    wr),
@@ -170,6 +173,10 @@ module top_TB;
         #1000000; // 1 ms
         TCP_OPEN_ACK = 1;
         TCP_TX_FULL = 0;
+        #100000; // 100 us
+        scl_i = 0;
+        #80000;
+        scl_i = 1;
     end
     
     always begin

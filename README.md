@@ -17,7 +17,7 @@ Use Vivado and import these:
 
 in the directory of software:
 
-* **install.py **     - install python and modules (for ubuntu)
+* **install.py**     - install python and modules (for ubuntu)
 * **ADC_readout.py**  - software to receive data via SiTCP, and to monitor
 
 python and python module matplotlib, pandas are required.

@@ -60,6 +60,7 @@ module top (
     wire [2:0]    rd_bytes; 
     wire [3:0]    rd_channels;
     wire          scl_o;
+    wire          scl_i;
     (* mark_debug *) wire          sda_i;
     wire          sda_o;
         
@@ -72,6 +73,8 @@ module top (
     wire FIFO_EMPTY;
     (* mark_debug *) wire FIFO_WR_EN;
     (* mark_debug *) reg FIFO_RD_EN;
+    
+    reg [31:0]    FIFO_RD_DELAY_CNT;
   
   //SiTCP
     wire          PLL_CLKFB;
@@ -82,8 +85,8 @@ module top (
     reg    [ 5:0] CNT125M;
     reg    [ 3:0] ALTREQ;
   // GMII
-    wire GMII_MDIO_OUT;
-    wire GMII_MDIO_OE;
+    wire          GMII_MDIO_OUT;
+    wire          GMII_MDIO_OE;
     reg           GMII_1000M;
     reg    [ 4:0] CNTRXC;
     wire          SiTCP_RST;        // out: reset for SiTCP and related circuits
@@ -131,12 +134,14 @@ module top (
     assign sda_io = (sda_o == 1'b0) ? 1'b0 : 1'bz;
     assign sda_i = sda_io;
     assign scl_io = (scl_o == 1'b0) ? 1'b0 : 1'bz;
+    assign scl_i = scl_io;
    
   // I2C Master IO 
     i2c_master_if i2c_master_if(
         .clk          (   CLK_40M),
         .reset        (  reset),
         .scl_o        (  scl_o),
+        .scl_i        ( scl_i),
         .sda_o        (  sda_o),
         .sda_i        (  sda_i),
         .wr_flg       (    wr_flg),
@@ -153,41 +158,39 @@ module top (
 
   // MAX1238 Controller                   
     i2c_max1238_ctrl i2c_ctrl( 
-        .clk            (   CLK_40M),
-        .reset          (  reset),
-        .led_ctrl       ( led_ctrl),
-        .wr_flg         (    wr_flg),
-        .rd_flg         (    rd_flg),
-        .adr            (   adr),
-        .wr_data        (wr_data),
-        .wr_bytes       (wr_bytes),
-        .rd_data        (rd_data),
-        .rd_channels    (rd_channels),
-        .rd_data_en     (rd_data_en),
-        .rd_bytes       (rd_bytes),
+        .clk              (   CLK_40M),
+        .reset            (  reset),
+        .led_ctrl         ( led_ctrl),
+        .wr_flg           (    wr_flg),
+        .rd_flg           (    rd_flg),
+        .adr              (   adr),
+        .wr_data          (wr_data),
+        .wr_bytes         (wr_bytes),
+        .rd_data          (rd_data),
+        .rd_channels      (rd_channels),
+        .rd_data_en       (rd_data_en),
+        .rd_bytes         (rd_bytes),
         .tx_fifo_data_en  (tx_fifo_data_en),   
-        .tx_fifo_data   (tx_fifo_data)
+        .tx_fifo_data     (tx_fifo_data)
     );
     
     assign FIFO_WR_EN = tx_fifo_data_en;
-    //assign FIFO_RD_EN = ~TCP_TX_FULL;
 
     fifo_generator_v13_2 fifo_8bit_data (
-        .rst      (~TCP_OPEN_ACK),         // input wire srst
-        .wr_clk   (CLK_40M),            // input wire wr_clk
-        .rd_clk   (CLK_200M),            // input wire rd_clk
-        .din      (tx_fifo_data),      // input wire [7 : 0] din
-        .wr_en    (FIFO_WR_EN),  // input wire wr_en
-        .rd_en    (FIFO_RD_EN),  // input wire rd_en
-        .dout     (tx_data),     // output wire [7 : 0] dout
-        .full     (),            // output wire full
-        .empty    (FIFO_EMPTY),           // output wire empty
-        .valid    (FIFO_VALID),  // output wire valid
-        .wr_rst_busy(),  // output wire wr_rst_busy
-        .rd_rst_busy()  // output wire rd_rst_busy
+        .rst          (~TCP_OPEN_ACK),         // input wire srst
+        .wr_clk       (CLK_40M),            // input wire wr_clk
+        .rd_clk       (CLK_200M),            // input wire rd_clk
+        .din          (tx_fifo_data),      // input wire [7 : 0] din
+        .wr_en        (FIFO_WR_EN),  // input wire wr_en
+        .rd_en        (FIFO_RD_EN),  // input wire rd_en
+        .dout         (tx_data),     // output wire [7 : 0] dout
+        .full         (),            // output wire full
+        .empty        (FIFO_EMPTY),           // output wire empty
+        .valid        (FIFO_VALID),  // output wire valid
+        .wr_rst_busy  (),  // output wire wr_rst_busy
+        .rd_rst_busy  ()  // output wire rd_rst_busy
     );
     
-    reg [31:0] FIFO_RD_DELAY_CNT;
     
   // FIFO_RD_EN Delay
     always @ (posedge CLK_200M or negedge reset ) begin
@@ -200,9 +203,9 @@ module top (
             if ( FIFO_WR_EN  == 1'b1)
                 FIFO_RD_DELAY_CNT <= 32'd1000000; // delay 5 ms
         end
-        else if (FIFO_RD_DELAY_CNT > 32'd4)
+        else if (FIFO_RD_DELAY_CNT > 32'd4*{24'd0,rd_channels}) // 4 bytes x rd channels
             FIFO_RD_DELAY_CNT <= FIFO_RD_DELAY_CNT - 32'd1;
-        else if ( (32'd0 < FIFO_RD_DELAY_CNT) && (FIFO_RD_DELAY_CNT <= 32'd4) ) begin
+        else if ( (32'd0 < FIFO_RD_DELAY_CNT) && (FIFO_RD_DELAY_CNT <= 32'd4*{24'd0,rd_channels}) ) begin
             FIFO_RD_DELAY_CNT <= FIFO_RD_DELAY_CNT - 32'd1;
             FIFO_RD_EN    <= 1'b1;
         end

@@ -14,6 +14,7 @@ module i2c_master_if (
     input               clk,
     input               reset,  
     output reg          scl_o,
+    input               scl_i,
     output reg          sda_o,
     input               sda_i,
     input [6:0]         adr,
@@ -38,6 +39,8 @@ module i2c_master_if (
   wire      rd_start;  
   wire       start_sig;
   wire       end_sig;
+  
+  reg      scl_pull_down;
  
   reg [6:0] adr_reg;
   reg        rd_reg;
@@ -54,6 +57,7 @@ module i2c_master_if (
   parameter p_1bit_cnt = 12'd400; // 40 MHz -> 40M/400 = 100 kHz
   parameter p_sda_chg = 12'd10;
    
+
 
 // wr_flg,rd_flg 1clk delay   
   always @ (posedge clk or negedge reset )
@@ -127,7 +131,7 @@ module i2c_master_if (
           tx_data <= 36'hff7fbfdfe; // {1111 1111 0} x 4
       else if (wr_flg == 1'b1)
           tx_data <= {wr_data[31:24],1'b1,wr_data[23:16],1'b1,wr_data[15:8],1'b1,wr_data[7:0],1'b1};
-      else if ( (time_cnt == p_sda_chg) && (bit_cnt>=8'd10) && (bit_cnt<=end_bit) )
+      else if ( (time_cnt == p_sda_chg) && (bit_cnt>=8'd10) && (bit_cnt<=end_bit) && (scl_pull_down == 1'b0) )
           tx_data <= {tx_data[34:0],tx_data[35]};    // bit move
       else
           tx_data <= tx_data;
@@ -176,9 +180,9 @@ module i2c_master_if (
       bit_cnt <= 8'h00;
     else
       if ( count_en == 1'b1 )
-        if (time_cnt == p_1bit_cnt)
+        if ( (time_cnt == p_1bit_cnt) && (scl_pull_down == 1'b0) )
           bit_cnt <= bit_cnt + 8'h01;
-        else
+        else 
           bit_cnt <= bit_cnt ;
       else
         bit_cnt <= 8'h00;
@@ -211,15 +215,23 @@ module i2c_master_if (
 
 // SCL
   always @ (posedge clk or negedge reset )
-    if (reset == 1'b1)   
+    if (reset == 1'b1) begin
       scl_o <= 1'b1;
+      scl_pull_down <= 1'b0;
+    end
     else
       if (count_en == 1'b1)
         if (time_cnt == 12'h00)
           if (bit_cnt == 8'd0)
             scl_o <= 1'b1;
-          else
+          else if (scl_i == 1'b0) begin
+            scl_o <= 1'b1;
+            scl_pull_down <= 1'b1;
+          end
+          else begin
             scl_o <= 1'b0;
+            scl_pull_down <= 1'b0;  
+          end
         else if (time_cnt == {1'b0,p_1bit_cnt[11:1]})
           scl_o <= 1'b1;
         else

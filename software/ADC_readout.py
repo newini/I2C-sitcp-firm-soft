@@ -17,7 +17,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas
 
-rd_channels = 12
+rd_channels = 11
 
 def send_message(my_socket, send_data):
     my_socket.send(send_data)
@@ -40,8 +40,8 @@ def write_print(file, time, header, data, channels): # file, str, str array, int
     sys.stdout.write('%s  ' % time)
     file.write('%s  ' % time_now )
     for i in range(channels):
-        sys.stdout.write('%s %4d ' % (header[i],data[i]) )                     
-        file.write('%s %d'% (header[i],data[i]) )
+        sys.stdout.write('%3s %4d  ' % (header[i],data[i]) )                     
+        file.write('%3s %d'% (header[i],data[i]) )
     sys.stdout.write('mV \n')
     file.write('\n')
         
@@ -86,8 +86,8 @@ if __name__ == '__main__':
             data = []     # int
           # ascii to header & data
             for channel in range(rd_channels):
-                header.append( rx_data[channel] + `ord(rx_data[channel+1])` )       # Header
-                data.append( ord(rx_data[channel+2])*256+ord(rx_data[channel+3] ))  # 12bit to int
+                header.append( rx_data[4*channel] + `ord(rx_data[4*channel+1])` )       # Header
+                data.append( ord(rx_data[4*channel+2])*256+ord(rx_data[4*channel+3] ))  # 12bit to int
                 data[channel] = data[channel]*2.48/4.096                            # calibration
                 channel += 1
 
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                         column = channel - 4
                     else :
                         row = 2
-                        column = channels - 8
+                        column = channel - 8
                     my_plot.plot(ax=axes[row,column] )
                     plt.pause(0.001)
     except KeyboardInterrupt:

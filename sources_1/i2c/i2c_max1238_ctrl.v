@@ -29,11 +29,12 @@ module i2c_max1238_ctrl (
  
   reg  [25:0] main_cnt; // Main Count
   
-  wire [3:0] wr_be;  // Write Byte Enable
-  wire [3:0] rd_be;  // Read Byte Enable
+
    
   reg       init_cnt;
   reg [3:0] output_cnt;
+  
+  reg [3:0] rd_channel_cnt;
   
   reg [7:0] WR_SETUP; 
   reg [7:0] WR_CONFIGURATION;
@@ -70,7 +71,8 @@ module i2c_max1238_ctrl (
       if (reset == 1'b1)
           WR_CONFIGURATION <= 8'b0000_0000;
       else
-          WR_CONFIGURATION <= 8'b0000_0001;
+ //         WR_CONFIGURATION <= 8'b0000_0001; // single conversion
+          WR_CONFIGURATION <= 8'b0001_0111; // scan mode conversion
   end
 
 // Write for Setup, Configuration
@@ -116,21 +118,24 @@ module i2c_max1238_ctrl (
       if (reset == 1'b1) 
           rd_channels <= 4'd0;
       else 
-          rd_channels <= 4'd12; // 12 channels
+          rd_channels <= 4'd11; // 11 channels
+  end
+  
+// read channel count
+  always @ (posedge clk or negedge reset ) begin
+      if (reset == 1'b1) 
+          rd_channel_cnt <= 4'd15;
+      else if (rd_channel_cnt == 4'd15 && rd_flg == 1'b1)
+          rd_channel_cnt <= 4'd0;
+      else if (rd_channel_cnt < 4'd15 && output_cnt == 4'd1)
+          rd_channel_cnt <= rd_channel_cnt + 4'd1;
+      else if (rd_channel_cnt == rd_channels)
+          rd_channel_cnt <= 4'd15;
+      else
+          rd_channel_cnt <= rd_channel_cnt;
   end
 
-// wr_flg,rd_flg byte enable
-assign wr_be = (wr_bytes == 3'd1) ? 4'b1000 :    
-               (wr_bytes == 3'd2) ? 4'b1100 : 
-               (wr_bytes == 3'd3) ? 4'b1110 :
-               (wr_bytes == 3'd4) ? 4'b1111 : 4'b0000;
-   
-assign rd_be = (rd_bytes == 3'd1) ? 4'b1000 :    
-               (rd_bytes == 3'd2) ? 4'b1100 : 
-               (rd_bytes == 3'd3) ? 4'b1110 :
-               (rd_bytes == 3'd4) ? 4'b1111 : 4'b0000;
-
-// output data count
+// output data count per channel
   always @ (posedge clk or negedge reset ) begin
       if (reset == 1'b1) 
           output_cnt <= 4'd0;
@@ -153,7 +158,7 @@ assign rd_be = (rd_bytes == 3'd1) ? 4'b1000 :
           tx_fifo_data_en <= 1'b1;
       end
       else if (output_cnt == 4'd3) begin
-          tx_fifo_data <= 8'h00;    // "0"
+          tx_fifo_data <= {4'd0,rd_channel_cnt};    // channel #
           tx_fifo_data_en <= 1'b1;
       end
       else if (output_cnt == 4'd2) begin
@@ -180,8 +185,22 @@ assign rd_be = (rd_bytes == 3'd1) ? 4'b1000 :
   reg [31:0] temp_be;
   wire [11:0] seisuu;
   wire [3:0]  point1;
- Hex to ASCII
+  wire [3:0] wr_be;  // Write Byte Enable
+  wire [3:0] rd_be;  // Read Byte Enable
 
+ 
+ // wr_flg,rd_flg byte enable
+ assign wr_be = (wr_bytes == 3'd1) ? 4'b1000 :    
+                (wr_bytes == 3'd2) ? 4'b1100 : 
+                (wr_bytes == 3'd3) ? 4'b1110 :
+                (wr_bytes == 3'd4) ? 4'b1111 : 4'b0000;
+    
+ assign rd_be = (rd_bytes == 3'd1) ? 4'b1000 :    
+                (rd_bytes == 3'd2) ? 4'b1100 : 
+                (rd_bytes == 3'd3) ? 4'b1110 :
+                (rd_bytes == 3'd4) ? 4'b1111 : 4'b0000;
+ 
+//Hex to ASCII
 function [7:0] hex2ascii;
   input [3:0] hex_data;
   begin
