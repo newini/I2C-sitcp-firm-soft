@@ -28,3 +28,12 @@ to use ADC_readout.py, type
 python ADC_readout.py
 ```
 
+### demo
+
+use demo mode to check software's behavior
+
+```
+sudo python ADC_readout.py -m demo
+```
+
+In demo mode, a TCP server created and produce random data between 0 to 4095 then send to client.
