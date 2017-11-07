@@ -1,30 +1,30 @@
 `timescale 1ns / 1ps
 /******************************************************************************
-// File Name            : top.v
-//------------------------------------------------------------------------------
-// Function             : top module for ADC readout application on Verilog-HDL
-//                        use I2C and SiTCP                     
-//                        
-//------------------------------------------------------------------------------
-// Designer             : Eunchong Kim 
-//------------------------------------------------------------------------------
-// Last Modified        : 10/25/2017 by Eunchong Kim
-//******************************************************************************/
+* File Name           : top.v
+*------------------------------------------------------------------------------
+* Function            : top module for ADC readout application on Verilog-HDL
+*                       use I2C and SiTCP                     
+*                        
+*------------------------------------------------------------------------------
+* Designer            : Eunchong Kim 
+*------------------------------------------------------------------------------
+* Created             : 11/7/2017
+******************************************************************************/
 module top ( 
-  // CLock
+  // Input System CLock
     input         clk_in1_p,
     input         clk_in1_n,
   // Swich
     input         reset,
-  // LED
+  // LEDs
     output        led_ctrl,
     output        led_busy,
     output        led_reset,
     output        LED_GMII_OK,
     output        LED_TCP_open,
-  // I2C IO
-    inout         scl_io, //I2C SCL inout
-    inout         sda_io, //I2C SDA inout
+  // I2C Input&Output
+    inout         scl_io, 
+    inout         sda_io, 
   // SiTCP
     output        GMII_RSTn,
     input         GMII_TX_CLK,
