@@ -3,7 +3,7 @@
 # ADC readout software by using I2C & SiTCP
 # Require : Python, python-tk
 #           Modules:  matplotlib, pandas
-# Last modified:    10/29/2017 by Eunchong Kim
+# Created : 11/7/2017 by Eunchong Kim
 #---------------------------------------------------------------------
 import sys
 import time
@@ -22,6 +22,7 @@ import pandas
 # Static
 rd_channels = 11 # total channels
 plot_period = 10 # second
+
 # Global
 i = 1
 plot_flg = 0
@@ -66,7 +67,6 @@ def createDemoServer():
         if( stop_flg == 1 ):
             print('\tDemo Server: Stopping TCP server...')
             break
-        time.sleep(0.99)
         demo_server_send_data  = ''
         #demo_server_received_data = demo_connection.recv(BUFFER_SIZE)
       # create random data
@@ -77,6 +77,7 @@ def createDemoServer():
             demo_server_send_data += chr(rand_data/256)   # int 2 ascii
             demo_server_send_data += chr(rand_data%256)   # int 2 ascii
         demo_connection.send(demo_server_send_data)
+        time.sleep(0.99)
     demo_connection.close()
     print('\tDemo Server: Stoped!')
 
@@ -96,8 +97,8 @@ def receive_data( file):
     while(1):
         if (stop_flg == 1):
             break
-        time_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         rx_data = receive_message(my_socket, rd_channels)
+        time_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         header = []   # String
         data = []     # int
       # ascii 2 header & data
@@ -108,12 +109,10 @@ def receive_data( file):
             my_data[channel].append( data[channel] )
             if (i > plot_period+1):
                 my_data[channel].pop(0) # delete data at 0
-            channel += 1
         write_print(file, time_now, header, data, rd_channels)
         if ( (i>plot_period) & (i%plot_period == 1) ):
             plot_flg = 1
             time.sleep(0.1)
-        else:
             plot_flg = 0
         i += 1
 
@@ -182,7 +181,6 @@ if __name__ == '__main__':
                         column = channel - 8
                     my_plot.plot( ax=axes[row,column] )
                     plt.pause(0.001)
-                plot_flg = 0
     except KeyboardInterrupt:
         print("W: interrupt received, stopping...")
     finally:
